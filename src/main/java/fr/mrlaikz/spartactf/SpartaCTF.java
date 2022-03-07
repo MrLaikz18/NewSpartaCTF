@@ -1,6 +1,8 @@
 package fr.mrlaikz.spartactf;
 
 import fr.mrlaikz.spartactf.commands.CTFCommand;
+import fr.mrlaikz.spartactf.listeners.PlayerDamageListener;
+import fr.mrlaikz.spartactf.listeners.PlayerMoveListener;
 import fr.mrlaikz.spartactf.managers.EventManager;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,8 +21,13 @@ public class SpartaCTF extends JavaPlugin {
         //MANAGERS
         eventManager = new EventManager(this);
 
+        //LISTENERS
+        getServer().getPluginManager().registerEvents(new PlayerDamageListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerMoveListener(), this);
+
         //COMMANDS
         getCommand("ctf").setExecutor(new CTFCommand(this));
+
         //MISC
         getLogger().info("Plugin Actif");
     }

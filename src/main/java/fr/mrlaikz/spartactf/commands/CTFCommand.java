@@ -3,6 +3,7 @@ package fr.mrlaikz.spartactf.commands;
 import fr.mrlaikz.spartactf.SpartaCTF;
 import fr.mrlaikz.spartactf.enums.EventState;
 import fr.mrlaikz.spartactf.objects.Event;
+import fr.mrlaikz.spartactf.objects.Map;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,7 +41,13 @@ public class CTFCommand implements CommandExecutor {
                 if(args.length == 2) {
                     if(p.hasPermission("spartacube.event.ctf")) {
                         if(args[0].equalsIgnoreCase("prepare")) {
-                            String map = args[1].toLowerCase(Locale.ROOT);
+                            String str_map = args[1].toLowerCase(Locale.ROOT);
+                            Map map = new Map(str_map);
+                            plugin.getEventManager().loadEvent(new Event(p, map));
+                        }
+
+                        if(args[0].equalsIgnoreCase("start")) {
+                            plugin.getEventManager().getEvent().start();
                         }
                     }
                 }

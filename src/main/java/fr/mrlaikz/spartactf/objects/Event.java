@@ -1,5 +1,6 @@
 package fr.mrlaikz.spartactf.objects;
 
+import fr.mrlaikz.spartactf.SpartaCTF;
 import fr.mrlaikz.spartactf.enums.Color;
 import fr.mrlaikz.spartactf.enums.EventState;
 import fr.mrlaikz.spartactf.enums.Status;
@@ -141,7 +142,6 @@ public class Event implements ListenerInterface {
 
     ///EVENT MANAGEMENT
     public void start() {
-
         spawnFlags();
         this.state = EventState.PLAYING;
         //TODO TIMER
@@ -150,11 +150,11 @@ public class Event implements ListenerInterface {
                 p.teleport(map.getFlagLocation(t.getColor()));
             }
         }
-
     }
 
     public void stop(Team winner) {
-
+        this.state = null;
+        SpartaCTF.getInstance().getEventManager().stopEvent(this);
     }
 
     //UTILS
