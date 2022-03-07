@@ -2,6 +2,7 @@ package fr.mrlaikz.spartactf.commands;
 
 import fr.mrlaikz.spartactf.SpartaCTF;
 import fr.mrlaikz.spartactf.enums.EventState;
+import fr.mrlaikz.spartactf.menus.ConfigMenu;
 import fr.mrlaikz.spartactf.objects.Event;
 import fr.mrlaikz.spartactf.objects.Map;
 import org.bukkit.command.Command;
@@ -43,7 +44,9 @@ public class CTFCommand implements CommandExecutor {
                         if(args[0].equalsIgnoreCase("prepare")) {
                             String str_map = args[1].toLowerCase(Locale.ROOT);
                             Map map = new Map(str_map);
-                            plugin.getEventManager().loadEvent(new Event(p, map));
+                            p.teleport(map.getSpawnLocation());
+                            ConfigMenu menu = new ConfigMenu(p, plugin, plugin.getEventManager().getEvent());
+                            menu.open();
                         }
 
                         if(args[0].equalsIgnoreCase("start")) {

@@ -1,5 +1,7 @@
 package fr.mrlaikz.spartactf.objects;
 
+import fr.iban.bukkitcore.rewards.Reward;
+import fr.iban.bukkitcore.rewards.RewardsDAO;
 import fr.mrlaikz.spartactf.SpartaCTF;
 import fr.mrlaikz.spartactf.enums.Color;
 import fr.mrlaikz.spartactf.enums.EventState;
@@ -22,6 +24,8 @@ public class Event implements ListenerInterface {
     private Map map;
     private List<Team> teams;
     private EventState state;
+    private Reward rewardWin;
+    private Reward rewardParticip;
 
     public Event(Player owner, Map map) {
         this.owner = owner;
@@ -51,13 +55,33 @@ public class Event implements ListenerInterface {
         return null;
     }
 
+    public List<Team> getTeams() {
+        return teams;
+    }
+
     public EventState getState() {
         return state;
+    }
+
+    public Reward getRewardWin() {
+        return rewardWin;
+    }
+
+    public Reward getRewardParticip() {
+        return rewardParticip;
     }
 
     //SETTERS
     public void setState(EventState state) {
         this.state = state;
+    }
+
+    public void setRewardWin(Reward r) {
+        rewardWin = r;
+    }
+
+    public void setRewardParticip(Reward r) {
+        rewardParticip = r;
     }
 
     //VOIDERS
@@ -120,7 +144,7 @@ public class Event implements ListenerInterface {
         }
 
         if(matchLocations(to, map.getFlagLocation(playerTeam.getColor())) && p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial())) {
-            stop(playerTeam);
+            stop(playerTeam, enemyTeam);
         }
 
         if(matchLocations(to, playerTeam.getFlag().getLocation()) && !matchLocations(playerTeam.getFlag().getLocation(), map.getFlagLocation(playerTeam.getColor()))) {
@@ -152,9 +176,20 @@ public class Event implements ListenerInterface {
         }
     }
 
-    public void stop(Team winner) {
+    public void stop(Team winner, Team looser) {
         this.state = null;
         SpartaCTF.getInstance().getEventManager().stopEvent(this);
+
+        for(Player p : winner.getMembers()) {
+            RewardsDAO.addRewardAsync(p.getUniqueId().toString(), rewardWin.getName(), rewardWin.getServer(), rewardWin.getCommand());
+            p.sendMessage("§aVous avez reçu une récompense pour votre victoire ! (/recompenses)");
+        }
+
+        for(Player p : looser.getMembers()) {
+            RewardsDAO.addRewardAsync(p.getUniqueId().toString(), rewardParticip.getName(), rewardParticip.getServer(), rewardParticip.getCommand());
+            p.sendMessage("§aVous avez reçu une récompense pour votre victoire ! (/recompenses)");
+        }
+
     }
 
     //UTILS
