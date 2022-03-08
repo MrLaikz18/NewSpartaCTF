@@ -16,6 +16,7 @@ public class SpartaCTF extends JavaPlugin {
     @Override
     public void onEnable() {
         //VARS
+        saveDefaultConfig();
         INSTANCE = this;
 
         //MANAGERS

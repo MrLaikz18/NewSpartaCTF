@@ -5,6 +5,7 @@ import fr.mrlaikz.spartactf.enums.EventState;
 import fr.mrlaikz.spartactf.menus.ConfigMenu;
 import fr.mrlaikz.spartactf.objects.Event;
 import fr.mrlaikz.spartactf.objects.Map;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,13 +31,9 @@ public class CTFCommand implements CommandExecutor {
 
                 Player p = (Player) sender;
 
-                if(args.length == 0) {
-                    if(plugin.getEventManager().getEvent() != null && plugin.getEventManager().getEvent().getState().equals(EventState.WAITING)) {
-                        Event event = plugin.getEventManager().getEvent();
-                        event.joinPlayer(p);
-                    } else {
-                        p.sendMessage("§cVous ne pouvez pas rejoindre cet event actuellement !");
-                    }
+                if(args.length == 1 && args[0].equalsIgnoreCase("reload") && p.hasPermission("spartacube.event.ctf")) {
+                    plugin.reloadConfig();
+                    p.sendMessage("§aConfiguration reloaded");
                 }
 
                 if(args.length == 2) {
@@ -45,13 +42,38 @@ public class CTFCommand implements CommandExecutor {
                             String str_map = args[1].toLowerCase(Locale.ROOT);
                             Map map = new Map(str_map);
                             p.teleport(map.getSpawnLocation());
+                            Event e = new Event(p, map);
                             ConfigMenu menu = new ConfigMenu(p, plugin, plugin.getEventManager().getEvent());
                             menu.open();
+                            plugin.getEventManager().setEvent(e);
                         }
 
                         if(args[0].equalsIgnoreCase("start")) {
                             plugin.getEventManager().getEvent().start();
                         }
+                    }
+                }
+
+                if(args.length == 3) {
+                    if(p.hasPermission("spartacube.event.ctf")) {
+                        if(args[0].equalsIgnoreCase("params")) {
+                            String map = args[2].toLowerCase(Locale.ROOT);
+                            Location loc = p.getLocation();
+                            if(args[1].equalsIgnoreCase("spawn_location")) {
+                                plugin.getConfig().set("maps." + map + ".spawn_location", loc);
+                            } else if(args[1].equalsIgnoreCase("red_location")) {
+                                plugin.getConfig().set("maps." + map + ".red_location", loc);
+                            } else if(args[1].equalsIgnoreCase("blue_location")) {
+                                plugin.getConfig().set("maps." + map + ".blue_location", loc);
+                            } else {
+                                p.sendMessage("§cParamètre inconnu");
+                                return false;
+                            }
+                            plugin.saveConfig();
+                            p.sendMessage("§aParamètre " + args[1] + " actualisé");
+                        }
+                    } else {
+                        p.sendMessage("§cVous n'avez pas la permission de faire cela !");
                     }
                 }
 

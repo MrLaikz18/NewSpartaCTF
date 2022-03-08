@@ -7,15 +7,20 @@ import fr.mrlaikz.spartactf.enums.Color;
 import fr.mrlaikz.spartactf.enums.EventState;
 import fr.mrlaikz.spartactf.enums.Status;
 import fr.mrlaikz.spartactf.interfaces.ListenerInterface;
+import fr.mrlaikz.spartactf.menus.KitMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.material.Wool;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class Event implements ListenerInterface {
@@ -86,18 +91,10 @@ public class Event implements ListenerInterface {
 
     //VOIDERS
     ///PLAYER MANAGEMENT
-    public void joinPlayer(Player p) {
-        if(getTeam(Color.BLUE).getMembers().size() > getTeam(Color.RED).getMembers().size()) {
-            getTeam(Color.RED).addPlayer(p);
-            p.sendMessage("§aVous avez rejoins l'équipe §c§lRouge");
-        } else if (getTeam(Color.BLUE).getMembers().size() < getTeam(Color.RED).getMembers().size()) {
-            getTeam(Color.BLUE).addPlayer(p);
-            p.sendMessage("§aVous avez rejoins l'équipe §9§lBleue");
-        } else {
-            getTeam(Color.RED).addPlayer(p);
-            p.sendMessage("§aVous avez rejoins l'équipe §c§lRouge");
-        }
-        p.teleport(map.getSpawnLocation());
+    public void joinPlayer(Player p, Team team) {
+        team.addPlayer(p);
+        KitMenu menu = new KitMenu(p, SpartaCTF.getInstance());
+        menu.open();
     }
 
     ///FLAG MANAGEMENT
@@ -164,11 +161,55 @@ public class Event implements ListenerInterface {
 
     }
 
+    @Override
+    public void onPlayerInteract(PlayerInteractEvent e) {
+        Player p = e.getPlayer();
+        if(p.getInventory().getItemInMainHand().getItemMeta().getDisplayName() != null) {
+            Team red = getTeam(Color.RED);
+            Team blue = getTeam(Color.BLUE);
+
+            if(p.getInventory().getItemInMainHand().getType().equals(Material.RED_WOOL)) {
+                if(red.getMembers().size() <= blue.getMembers().size()) {
+                    joinPlayer(p, red);
+                } else {
+                    p.sendMessage("§4Impossible de rejoindre l'équipe !");
+                }
+
+            } else if(p.getInventory().getItemInMainHand().getType().equals(Material.BLUE_WOOL)) {
+                if(red.getMembers().size() >= blue.getMembers().size()) {
+                    joinPlayer(p, blue);
+                } else {
+                    p.sendMessage("§4Impossible de rejoindre l'équipe !");
+                }
+            }
+
+        }
+    }
+
     ///EVENT MANAGEMENT
     public void start() {
         spawnFlags();
+
+        Location loc = map.getSpawnLocation();
+        Collection<Player> all = loc.getWorld().getNearbyPlayers(loc, 200);
+
+        ItemStack red = new ItemStack(Material.RED_WOOL);
+        ItemMeta redM = red.getItemMeta();
+        redM.setDisplayName("§cRejoindre l'équipe §c§lRouge");
+        red.setItemMeta(redM);
+
+        ItemStack blue = new ItemStack(Material.BLUE_WOOL);
+        ItemMeta blueM = blue.getItemMeta();
+        blueM.setDisplayName("§9Rejoindre l'équipe §9§lBleue");
+        blue.setItemMeta(redM);
+
+        for(Player p : all) {
+            p.getInventory().clear();
+            p.getInventory().addItem(red);
+            p.getInventory().addItem(blue);
+        }
+
         this.state = EventState.PLAYING;
-        //TODO TIMER
         for(Team t : teams) {
             for(Player p : t.getMembers()) {
                 p.teleport(map.getFlagLocation(t.getColor()));

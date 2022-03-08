@@ -22,6 +22,10 @@ public class EventManager {
     }
 
     //SETTERS
+    public void setEvent(Event e) {
+        this.event = e;
+    }
+
     public void stopEvent(Event e) {
         event = null;
     }

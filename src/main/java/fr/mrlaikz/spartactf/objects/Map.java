@@ -16,7 +16,7 @@ public class Map {
 
     public Map(String name) {
         this.name = name;
-        this.spawnLocation = SpartaCTF.getInstance().getConfig().getLocation("maps." + name.toLowerCase(Locale.ROOT) + ".spawnLocation");
+        this.spawnLocation = SpartaCTF.getInstance().getConfig().getLocation("maps." + name.toLowerCase(Locale.ROOT) + ".spawn_location");
         this.flagLocations = new ArrayList<>();
         flagLocations.add(SpartaCTF.getInstance().getConfig().getLocation("maps." + name.toLowerCase(Locale.ROOT) + ".red_location"));
         flagLocations.add(SpartaCTF.getInstance().getConfig().getLocation("maps." + name.toLowerCase(Locale.ROOT) + ".blue_location"));
