@@ -7,20 +7,20 @@ import fr.mrlaikz.spartactf.enums.Color;
 import fr.mrlaikz.spartactf.enums.EventState;
 import fr.mrlaikz.spartactf.enums.Status;
 import fr.mrlaikz.spartactf.interfaces.ListenerInterface;
-import fr.mrlaikz.spartactf.menus.KitMenu;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.material.Wool;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class Event implements ListenerInterface {
@@ -37,8 +37,8 @@ public class Event implements ListenerInterface {
         this.map = map;
         this.teams = new ArrayList<>();
         this.state = EventState.WAITING;
-        teams.add(new Team(Color.BLUE));
-        teams.add(new Team(Color.RED));
+        teams.add(new Team(Color.BLUE, map));
+        teams.add(new Team(Color.RED, map));
     }
 
     //GETTERS
@@ -92,9 +92,34 @@ public class Event implements ListenerInterface {
     //VOIDERS
     ///PLAYER MANAGEMENT
     public void joinPlayer(Player p, Team team) {
+        if(getEnemyTeam(team).getMembers().contains(p)) {
+            getEnemyTeam(team).remove(p);
+        }
         team.addPlayer(p);
-        KitMenu menu = new KitMenu(p, SpartaCTF.getInstance());
-        menu.open();
+    }
+
+    public void leavePlayer(Player p) {
+        Team red = getTeam(Color.RED);
+        Team blue = getTeam(Color.BLUE);
+        if(red.getMembers().contains(p)) {
+            red.remove(p);
+        }
+        if(blue.getMembers().contains(p)) {
+            blue.remove(p);
+        }
+        p.getInventory().clear();
+    }
+
+    public void joinRandomPlayer(Player p) {
+        Team red = getTeam(Color.RED);
+        Team blue = getTeam(Color.BLUE);
+            if (red.getMembers().size() <= blue.getMembers().size()) {
+                joinPlayer(p, red);
+                p.sendMessage("§cTu as rejoint l'équipe §c§lROUGE");
+            } else {
+                joinPlayer(p, blue);
+                p.sendMessage("§cTu as rejoint l'équipe §9§lBLEUE");
+            }
     }
 
     ///FLAG MANAGEMENT
@@ -109,13 +134,16 @@ public class Event implements ListenerInterface {
         capturer.getInventory().setHelmet(new ItemStack(captured.getFlag().getMaterial()));
         captured.getFlag().getLocation().getBlock().setType(Material.AIR);
         captured.getFlag().setStatus(Status.TAKEN);
+        capturer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aa été capturé !");
     }
 
-    public void fallFlag(Player capturer, Team captured) {
+    public void fallFlag(Player capturer, Team captured, Location loc) {
         capturer.getLocation().getBlock().setType(capturer.getInventory().getHelmet().getType());
         capturer.getInventory().setHelmet(new ItemStack(Material.AIR));
         captured.getFlag().setStatus(Status.FREE);
+        captured.getFlag().setLocation(loc);
+        capturer.removePotionEffect(PotionEffectType.GLOWING);
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aest maintenant libre !");
     }
 
@@ -123,6 +151,7 @@ public class Event implements ListenerInterface {
         team.getFlag().getLocation().getBlock().setType(Material.AIR);
         map.getFlagLocation(team.getColor()).getBlock().setType(team.getFlag().getMaterial());
         team.getFlag().setStatus(Status.FREE);
+        team.getFlag().setLocation(map.getFlagLocation(team.getColor()));
         Bukkit.broadcastMessage("§aLe drapeau " + team.getColor().getName() + " §aa été reset");
     }
 
@@ -132,20 +161,26 @@ public class Event implements ListenerInterface {
         Player p = e.getPlayer();
         Location from = e.getFrom();
         Location to = e.getTo();
-        Team playerTeam = getTeamFromPlayer(p);
-        Team enemyTeam = getEnemyTeam(playerTeam);
 
+        if(state.equals(EventState.PLAYING)) {
+            Team playerTeam = getTeamFromPlayer(p);
+            Team enemyTeam = getEnemyTeam(playerTeam);
 
-        if(matchLocations(to, enemyTeam.getFlag().getLocation())) {
-            captureFlag(p, enemyTeam);
-        }
+            if(playerTeam != null && enemyTeam != null) {
+                if (matchLocations(to, enemyTeam.getFlag().getLocation()) && enemyTeam.getFlag().getStatus().equals(Status.FREE)) {
+                    captureFlag(p, enemyTeam);
+                }
 
-        if(matchLocations(to, map.getFlagLocation(playerTeam.getColor())) && p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial())) {
-            stop(playerTeam, enemyTeam);
-        }
+                if (p.getInventory().getHelmet() != null) {
+                    if (matchLocations(to, map.getFlagLocation(playerTeam.getColor())) && p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial())) {
+                        stop(playerTeam, enemyTeam);
+                    }
+                }
 
-        if(matchLocations(to, playerTeam.getFlag().getLocation()) && !matchLocations(playerTeam.getFlag().getLocation(), map.getFlagLocation(playerTeam.getColor()))) {
-            resetFlag(playerTeam);
+                if (playerTeam.getFlag().getStatus().equals(Status.FREE) && matchLocations(to, playerTeam.getFlag().getLocation()) && !matchLocations(playerTeam.getFlag().getLocation(), map.getFlagLocation(playerTeam.getColor()))) {
+                    resetFlag(playerTeam);
+                }
+            }
         }
     }
 
@@ -155,43 +190,46 @@ public class Event implements ListenerInterface {
         Team playerTeam = getTeamFromPlayer(p);
         Team enemyTeam = getEnemyTeam(playerTeam);
 
-        if(p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial()) && enemyTeam.getFlag().getStatus().equals(Status.TAKEN)) {
-            fallFlag(p, enemyTeam);
+        if(playerTeam != null && enemyTeam != null) {
+            if (p.getInventory().getHelmet() != null) {
+                if (p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial()) && enemyTeam.getFlag().getStatus().equals(Status.TAKEN)) {
+                    fallFlag(p, enemyTeam, p.getLocation());
+                    p.setBedSpawnLocation(map.getFlagLocation(playerTeam.getColor()));
+                }
+            }
         }
-
     }
 
     @Override
     public void onPlayerInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
-        if(p.getInventory().getItemInMainHand().getItemMeta().getDisplayName() != null) {
+        if(p.getInventory().getItemInMainHand().hasItemMeta()) {
             Team red = getTeam(Color.RED);
             Team blue = getTeam(Color.BLUE);
-
-            if(p.getInventory().getItemInMainHand().getType().equals(Material.RED_WOOL)) {
-                if(red.getMembers().size() <= blue.getMembers().size()) {
+            if (p.getInventory().getItemInMainHand().getType().equals(Material.RED_WOOL)) {
+                if (red.getMembers().size() <= blue.getMembers().size()) {
                     joinPlayer(p, red);
+                    p.sendMessage("§cTu as rejoint l'équipe §c§lROUGE");
                 } else {
                     p.sendMessage("§4Impossible de rejoindre l'équipe !");
                 }
 
-            } else if(p.getInventory().getItemInMainHand().getType().equals(Material.BLUE_WOOL)) {
-                if(red.getMembers().size() >= blue.getMembers().size()) {
+            } else if (p.getInventory().getItemInMainHand().getType().equals(Material.BLUE_WOOL)) {
+                if (red.getMembers().size() >= blue.getMembers().size()) {
                     joinPlayer(p, blue);
+                    p.sendMessage("§9Tu as rejoint l'équipe §9§lBLEUE");
                 } else {
                     p.sendMessage("§4Impossible de rejoindre l'équipe !");
                 }
             }
-
         }
+        e.setCancelled(true);
     }
 
-    ///EVENT MANAGEMENT
-    public void start() {
-        spawnFlags();
-
-        Location loc = map.getSpawnLocation();
-        Collection<Player> all = loc.getWorld().getNearbyPlayers(loc, 200);
+    @Override
+    public void onPlayerJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        p.getInventory().clear();
 
         ItemStack red = new ItemStack(Material.RED_WOOL);
         ItemMeta redM = red.getItemMeta();
@@ -201,20 +239,66 @@ public class Event implements ListenerInterface {
         ItemStack blue = new ItemStack(Material.BLUE_WOOL);
         ItemMeta blueM = blue.getItemMeta();
         blueM.setDisplayName("§9Rejoindre l'équipe §9§lBleue");
-        blue.setItemMeta(redM);
+        blue.setItemMeta(blueM);
 
-        for(Player p : all) {
-            p.getInventory().clear();
-            p.getInventory().addItem(red);
-            p.getInventory().addItem(blue);
+        p.getInventory().addItem(red);
+        p.getInventory().addItem(blue);
+
+    }
+
+    @Override
+    public void onPlayerRespawn(PlayerRespawnEvent e) {
+        Player p = e.getPlayer();
+        p.teleport(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
+    }
+
+    @Override
+    public void onDamage(EntityDamageByEntityEvent e) {
+        Player p = (Player) e.getDamager();
+        Player c = (Player) e.getEntity();
+        if(getState().equals(EventState.PLAYING)) {
+            if(p != null && c != null) {
+                Team pTeam = getTeamFromPlayer(p);
+                Team cTeam = getTeamFromPlayer(c);
+                if(pTeam != null && cTeam != null) {
+                    if (pTeam == cTeam) {
+                        e.setCancelled(true);
+                    } else {
+                        e.setCancelled(false);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onPlayerLeave(PlayerQuitEvent e) {
+        leavePlayer(e.getPlayer());
+    }
+
+    ///EVENT MANAGEMENT
+    public void start() {
+        spawnFlags();
+        state = EventState.PLAYING;
+
+        for(Player pl : Bukkit.getOnlinePlayers()) {
+            if(pl.getGameMode().equals(GameMode.ADVENTURE)) {
+                if(!getTeam(Color.RED).getMembers().contains(pl) && !getTeam(Color.BLUE).getMembers().contains(pl)) {
+                    joinRandomPlayer(pl);
+                }
+            }
         }
 
-        this.state = EventState.PLAYING;
         for(Team t : teams) {
             for(Player p : t.getMembers()) {
                 p.teleport(map.getFlagLocation(t.getColor()));
+                p.getInventory().clear();
+                giveStuff(t, p);
             }
         }
+
+
+
     }
 
     public void stop(Team winner, Team looser) {
@@ -224,12 +308,22 @@ public class Event implements ListenerInterface {
         for(Player p : winner.getMembers()) {
             RewardsDAO.addRewardAsync(p.getUniqueId().toString(), rewardWin.getName(), rewardWin.getServer(), rewardWin.getCommand());
             p.sendMessage("§aVous avez reçu une récompense pour votre victoire ! (/recompenses)");
+            p.teleport(map.getSpawnLocation());
+            p.getInventory().clear();
+            if(p.hasPotionEffect(PotionEffectType.GLOWING)) {
+                p.removePotionEffect(PotionEffectType.GLOWING);
+            }
         }
 
         for(Player p : looser.getMembers()) {
             RewardsDAO.addRewardAsync(p.getUniqueId().toString(), rewardParticip.getName(), rewardParticip.getServer(), rewardParticip.getCommand());
             p.sendMessage("§aVous avez reçu une récompense pour votre victoire ! (/recompenses)");
+            p.teleport(map.getSpawnLocation());
+            p.getInventory().clear();
         }
+
+        Bukkit.broadcastMessage("§aL'équipe " + winner.getColor().getName() + " §agagne l'event !");
+
 
     }
 
@@ -262,6 +356,43 @@ public class Event implements ListenerInterface {
             return teams.get(1);
         }
         return null;
+    }
+
+    public void giveStuff(Team t, Player p) {
+
+        if(t.getColor().equals(Color.RED)) {
+
+            ItemStack chestplate = SpartaCTF.getInstance().getConfig().getItemStack("stuff.red.armor.chestplate");
+            ItemStack leggings = SpartaCTF.getInstance().getConfig().getItemStack("stuff.red.armor.leggings");
+            ItemStack boots = SpartaCTF.getInstance().getConfig().getItemStack("stuff.red.armor.boots");
+
+            p.getInventory().setChestplate(chestplate);
+            p.getInventory().setLeggings(leggings);
+            p.getInventory().setBoots(boots);
+
+            for(String s : SpartaCTF.getInstance().getConfig().getConfigurationSection("stuff.red.stuff").getKeys(false)) {
+                ItemStack it = SpartaCTF.getInstance().getConfig().getItemStack("stuff.red.stuff." + s);
+                p.getInventory().addItem(it);
+            }
+
+        } else if(t.getColor().equals(Color.BLUE)) {
+
+            ItemStack chestplate = SpartaCTF.getInstance().getConfig().getItemStack("stuff.blue.armor.chestplate");
+            ItemStack leggings = SpartaCTF.getInstance().getConfig().getItemStack("stuff.blue.armor.leggings");
+            ItemStack boots = SpartaCTF.getInstance().getConfig().getItemStack("stuff.blue.armor.boots");
+
+            p.getInventory().setChestplate(chestplate);
+            p.getInventory().setLeggings(leggings);
+            p.getInventory().setBoots(boots);
+
+            for(String s : SpartaCTF.getInstance().getConfig().getConfigurationSection("stuff.blue.stuff").getKeys(false)) {
+                ItemStack it = SpartaCTF.getInstance().getConfig().getItemStack("stuff.blue.stuff." + s);
+                p.getInventory().addItem(it);
+            }
+
+        }
+
+
     }
 
 

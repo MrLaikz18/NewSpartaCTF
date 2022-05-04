@@ -8,16 +8,15 @@ import org.bukkit.GameMode;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
-public class PlayerInteractListener implements Listener {
+public class PlayerRespawnListener implements Listener {
 
     @EventHandler
-    public void onInteract(PlayerInteractEvent e) {
+    public void onInteract(PlayerRespawnEvent e) {
         Event event = SpartaCTF.getInstance().getEventManager().getEvent();
-        if(event != null && event.getState().equals(EventState.WAITING) && e.getPlayer().getGameMode().equals(GameMode.ADVENTURE)) {
-            ((ListenerInterface) event).onPlayerInteract(e);
-            e.setCancelled(true);
+        if(event != null && event.getState().equals(EventState.PLAYING) && e.getPlayer().getGameMode().equals(GameMode.ADVENTURE)) {
+            ((ListenerInterface) event).onPlayerRespawn(e);
         }
     }
-
 }

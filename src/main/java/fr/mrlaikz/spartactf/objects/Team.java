@@ -12,9 +12,10 @@ public class Team {
     private List<Player> members;
     private Flag flag;
 
-    public Team(Color color) {
+    public Team(Color color, Map map) {
         this.color = color;
         this.members = new ArrayList<>();
+        this.flag = new Flag(this, map, color);
     }
 
     //GETTERS
@@ -34,6 +35,8 @@ public class Team {
     public void addPlayer(Player p) {
         members.add(p);
     }
+
+    public void remove(Player p) { members.remove(p); }
 
 
 }

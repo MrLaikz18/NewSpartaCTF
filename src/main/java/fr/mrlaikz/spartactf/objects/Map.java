@@ -40,4 +40,8 @@ public class Map {
         return null;
     }
 
+    public Location getFlagLocationList(int i) {
+        return flagLocations.get(i);
+    }
+
 }

@@ -1,6 +1,7 @@
 package fr.mrlaikz.spartactf.objects;
 
 import fr.mrlaikz.spartactf.SpartaCTF;
+import fr.mrlaikz.spartactf.enums.Color;
 import fr.mrlaikz.spartactf.enums.Status;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -12,9 +13,9 @@ public class Flag {
     private Status status;
     private Material mat;
 
-    public Flag(Team team) {
+    public Flag(Team team, Map map, Color c) {
         this.team = team;
-        this.loc = team.getColor().getLocation();
+        this.loc = map.getFlagLocation(c);
         this.status = Status.FREE;
         this.mat = team.getColor().getMaterial();
     }
