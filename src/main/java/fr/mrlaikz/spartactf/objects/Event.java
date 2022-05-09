@@ -194,7 +194,7 @@ public class Event implements ListenerInterface {
             if (p.getInventory().getHelmet() != null) {
                 if (p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial()) && enemyTeam.getFlag().getStatus().equals(Status.TAKEN)) {
                     fallFlag(p, enemyTeam, p.getLocation());
-                    p.setBedSpawnLocation(map.getFlagLocation(playerTeam.getColor()));
+                    p.teleport(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
                 }
             }
         }
@@ -250,6 +250,7 @@ public class Event implements ListenerInterface {
     public void onPlayerRespawn(PlayerRespawnEvent e) {
         Player p = e.getPlayer();
         p.teleport(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
+        giveStuff(getTeamFromPlayer(p), p);
     }
 
     @Override

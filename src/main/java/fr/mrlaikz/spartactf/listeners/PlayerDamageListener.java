@@ -15,7 +15,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 public class PlayerDamageListener implements Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onDamage(PlayerDeathEvent e) {
 
         if(SpartaCTF.getInstance().getEventManager().getEvent() != null && e.getPlayer().getGameMode().equals(GameMode.ADVENTURE)) {
