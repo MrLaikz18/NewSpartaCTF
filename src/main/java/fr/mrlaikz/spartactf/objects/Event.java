@@ -134,7 +134,8 @@ public class Event implements ListenerInterface {
         capturer.getInventory().setHelmet(new ItemStack(captured.getFlag().getMaterial()));
         captured.getFlag().getLocation().getBlock().setType(Material.AIR);
         captured.getFlag().setStatus(Status.TAKEN);
-        capturer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 1));
+        capturer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 0));
+        capturer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, Integer.MAX_VALUE, 0));
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aa été capturé !");
     }
 
@@ -144,6 +145,7 @@ public class Event implements ListenerInterface {
         captured.getFlag().setStatus(Status.FREE);
         captured.getFlag().setLocation(loc);
         capturer.removePotionEffect(PotionEffectType.GLOWING);
+        capturer.removePotionEffect(PotionEffectType.SLOW);
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aest maintenant libre !");
     }
 
@@ -194,7 +196,9 @@ public class Event implements ListenerInterface {
             if (p.getInventory().getHelmet() != null) {
                 if (p.getInventory().getHelmet().getType().equals(enemyTeam.getFlag().getMaterial()) && enemyTeam.getFlag().getStatus().equals(Status.TAKEN)) {
                     fallFlag(p, enemyTeam, p.getLocation());
+                    e.setCancelled(true);
                     p.teleport(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
+                    p.setHealth(20);
                 }
             }
         }
@@ -249,8 +253,7 @@ public class Event implements ListenerInterface {
     @Override
     public void onPlayerRespawn(PlayerRespawnEvent e) {
         Player p = e.getPlayer();
-        p.teleport(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
-        giveStuff(getTeamFromPlayer(p), p);
+        e.setRespawnLocation(map.getFlagLocation(getTeamFromPlayer(p).getColor()));
     }
 
     @Override
@@ -313,7 +316,10 @@ public class Event implements ListenerInterface {
             p.getInventory().clear();
             if(p.hasPotionEffect(PotionEffectType.GLOWING)) {
                 p.removePotionEffect(PotionEffectType.GLOWING);
+                p.removePotionEffect(PotionEffectType.SLOW);
             }
+            p.setHealth(20);
+            p.setSaturation(20);
         }
 
         for(Player p : looser.getMembers()) {
@@ -321,6 +327,12 @@ public class Event implements ListenerInterface {
             p.sendMessage("§aVous avez reçu une récompense pour votre victoire ! (/recompenses)");
             p.teleport(map.getSpawnLocation());
             p.getInventory().clear();
+            if(p.hasPotionEffect(PotionEffectType.GLOWING)) {
+                p.removePotionEffect(PotionEffectType.GLOWING);
+                p.removePotionEffect(PotionEffectType.SLOW);
+            }
+            p.setHealth(20);
+            p.setSaturation(20);
         }
 
         Bukkit.broadcastMessage("§aL'équipe " + winner.getColor().getName() + " §agagne l'event !");
