@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -135,7 +136,8 @@ public class Event implements ListenerInterface {
         captured.getFlag().getLocation().getBlock().setType(Material.AIR);
         captured.getFlag().setStatus(Status.TAKEN);
         capturer.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, Integer.MAX_VALUE, 0));
-        capturer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, Integer.MAX_VALUE, 0));
+        capturer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, Integer.MAX_VALUE, 1));
+        capturer.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, Integer.MAX_VALUE, 0));
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aa été capturé !");
     }
 
@@ -146,6 +148,7 @@ public class Event implements ListenerInterface {
         captured.getFlag().setLocation(loc);
         capturer.removePotionEffect(PotionEffectType.GLOWING);
         capturer.removePotionEffect(PotionEffectType.SLOW);
+        capturer.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
         Bukkit.broadcastMessage("§aLe drapeau " + captured.getColor().getName() + " §aest maintenant libre !");
     }
 
@@ -258,18 +261,23 @@ public class Event implements ListenerInterface {
 
     @Override
     public void onDamage(EntityDamageByEntityEvent e) {
-        Player p = (Player) e.getDamager();
+        e.setCancelled(false);
+        Player p = null;
+        if(e.getDamager() instanceof Player) {
+            p = (Player) e.getDamager();
+        } else if(e.getDamager() instanceof Arrow) {
+            Arrow a = (Arrow) e.getDamager();
+            p = (Player) a.getShooter();
+        }
         Player c = (Player) e.getEntity();
-        if(getState().equals(EventState.PLAYING)) {
-            if(p != null && c != null) {
-                Team pTeam = getTeamFromPlayer(p);
-                Team cTeam = getTeamFromPlayer(c);
-                if(pTeam != null && cTeam != null) {
-                    if (pTeam == cTeam) {
-                        e.setCancelled(true);
-                    } else {
-                        e.setCancelled(false);
-                    }
+        if (getState().equals(EventState.PLAYING)) {
+            Team pTeam = getTeamFromPlayer(p);
+            Team cTeam = getTeamFromPlayer(c);
+            if (pTeam != null && cTeam != null) {
+                if (pTeam == cTeam) {
+                    e.setCancelled(true);
+                } else {
+                    e.setCancelled(false);
                 }
             }
         }
@@ -317,6 +325,7 @@ public class Event implements ListenerInterface {
             if(p.hasPotionEffect(PotionEffectType.GLOWING)) {
                 p.removePotionEffect(PotionEffectType.GLOWING);
                 p.removePotionEffect(PotionEffectType.SLOW);
+                p.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
             }
             p.setHealth(20);
             p.setSaturation(20);

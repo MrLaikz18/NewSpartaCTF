@@ -61,8 +61,12 @@ public class ConfigMenu extends Menu {
                 }).open());
             });
         } else if (displayNameEquals(item, "§6§lAnnoncer")) {
-            core.getRedisClient().getTopic("EventAnnounce").publish(new EventAnnouce("Capture The Flag", event.getMap().getName(), "Capturez le drapeau enemi en premier, et ramenez le a votre base !", SLocationUtils.getSLocation(event.getMap().getSpawnLocation()), player.getName()));
+            core.getRedisClient().getTopic("EventAnnounce").publish(new EventAnnouce("CaptureTheFlag", event.getMap().getName(), "Capturez le drapeau enemi en premier, et ramenez le a votre base !", SLocationUtils.getSLocation(event.getMap().getSpawnLocation()), player.getName()));
         } else if (displayNameEquals(item, "§2§lLancer !")) {
+            if(event.getRewardParticip() == null || event.getRewardWin() == null) {
+                player.sendMessage("§c§lVous n'avez pas mis deux récompenses !");
+                return;
+            }
             new StartTask(event).runTaskTimer(core, 0L, 20L);
         }
     }
@@ -81,7 +85,7 @@ public class ConfigMenu extends Menu {
         chest.setItemMeta(chestM);
 
         ItemStack chest2 = new ItemStack(Material.CHEST);
-        ItemMeta chestM2 = chest.getItemMeta();
+        ItemMeta chestM2 = chest2.getItemMeta();
         chestM2.setDisplayName("§2§lRécompense de participation");
         if(event.getRewardParticip() != null) {
             List<String> lore = new ArrayList<String>();
